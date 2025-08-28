@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% block content %}
+
+{# 统一渲染单元格：空(None或"")就显示反斜杠 \ #}
+{% macro cell(v) -%}
+  {{ v if v not in [None, ""] else "\\" }}
+{%- endmacro %}
+{% if deleted %}
+  <div style="background:#ecfdf5;border:1px solid #bbf7d0;color:#065f46;padding:10px 12px;border-radius:10px;margin-bottom:14px;">
+    ✅ 已删除
+  </div>
+{% endif %}
+
+{# 纯 CSS tabs：用隐藏的 radio 控制哪个面板显示 #}
+<input id="tab-reserve"  class="tab-input" type="radio" name="tab" {% if active_table=='reserve' or not active_table %}checked{% endif %} />
+<input id="tab-offering" class="tab-input" type="radio" name="tab" {% if active_table=='offering' %}checked{% endif %} />
+<input id="tab-deal"     class="tab-input" type="radio" name="tab" {% if active_table=='deal' %}checked{% endif %} />
+
+<section class="tabs">
+  <!-- 顶部标签导航 -->
+  <div class="tabs__nav">
+    <label for="tab-reserve"  class="tabs__btn btn-reserve">储备库</label>
+    <label for="tab-offering" class="tabs__btn btn-offering">出让库</label>
+    <label for="tab-deal"     class="tabs__btn btn-deal">成交库</label>
+  </div>
+
+  <!-- 面板内容 -->
+  <div class="tabs__panels">
+
+    <!-- 储备库 -->
+    <div class="tab__panel panel-reserve">
+      <section class="card" style="border:none; box-shadow:none;">
+        <div class="card__hd">
+          <div class="card__title">储备库</div>
+          <div class="card__sub">仅显示 ID / 名称 / 矿种 / 地州 / 出让时间</div>
+        </div>
+        <div class="card__bd table-wrap">
+          <table class="table-has-actions">
+            <thead>
+              <tr>
+                <th style="width:80px">ID</th>
+                <th>名称</th>
+                <th>矿种</th>
+                <th>地州</th>
+                <th>出让时间</th>
+                <th style="width:200px">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in reserve_rows %}
+              <tr class="table-row-click">
+                <td>{{ cell(row[0]) }}</td>
+                <td>
+                  <a href="/detail/reserve/{{ row[0] }}">{{ cell(row[1]) }}</a>
+                  <!-- 覆盖整行的透明链接，不影响右侧按钮点击 -->
+                  <a class="rowlink" href="/detail/reserve/{{ row[0] }}">查看详情</a>
+                </td>
+                <td>{{ cell(row[2]) }}</td>  {# mineral_type #}
+                <td>{{ cell(row[3]) }}</td>  {# region #}
+                <td>{{ cell(row[4]) }}</td>  {# announcement_date #}
+                <td>
+                  <div class="cell-actions">
+                    <form method="post" action="/move/reserve/{{ row[0] }}">
+                      <button class="btn btn--ghost btn--sm" type="submit">→ 出让库</button>
+                    </form>
+                    <a class="btn btn--danger btn--sm" href="/detail/reserve/{{ row[0] }}?delete=1">删除</a>
+                  </div>
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="6" class="muted">暂无数据</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <!-- 出让库 -->
+    <div class="tab__panel panel-offering">
+      <section class="card" style="border:none; box-shadow:none;">
+        <div class="card__hd">
+          <div class="card__title">出让库</div>
+          <div class="card__sub">仅显示 ID / 名称 / 矿种 / 地州 / 出让时间</div>
+        </div>
+        <div class="card__bd table-wrap">
+          <table class="table-has-actions">
+            <thead>
+              <tr>
+                <th style="width:80px">ID</th>
+                <th>名称</th>
+                <th>矿种</th>
+                <th>地州</th>
+                <th>出让时间</th>
+                <th style="width:200px">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in offering_rows %}
+              <tr class="table-row-click">
+                <td>{{ cell(row[0]) }}</td>
+                <td>
+                  <a href="/detail/offering/{{ row[0] }}">{{ cell(row[1]) }}</a>
+                  <a class="rowlink" href="/detail/offering/{{ row[0] }}">查看详情</a>
+                </td>
+                <td>{{ cell(row[2]) }}</td>
+                <td>{{ cell(row[3]) }}</td>
+                <td>{{ cell(row[4]) }}</td>
+                <td>
+                  <div class="cell-actions">
+                    <form method="post" action="/move/offering/{{ row[0] }}">
+                      <button class="btn btn--success btn--sm" type="submit">→ 成交库</button>
+                    </form>
+                    <a class="btn btn--danger btn--sm" href="/detail/offering/{{ row[0] }}?delete=1">删除</a>
+                  </div>
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="6" class="muted">暂无数据</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <!-- 成交库 -->
+    <div class="tab__panel panel-deal">
+      <section class="card" style="border:none; box-shadow:none;">
+        <div class="card__hd">
+          <div class="card__title">成交库</div>
+          <div class="card__sub">仅显示 ID / 名称 / 矿种 / 地州 / 出让时间</div>
+        </div>
+        <div class="card__bd table-wrap">
+          <table class="table-has-actions">
+            <thead>
+              <tr>
+                <th style="width:80px">ID</th>
+                <th>名称</th>
+                <th>矿种</th>
+                <th>地州</th>
+                <th>出让时间</th>
+                <th style="width:200px">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in deal_rows %}
+              <tr class="table-row-click">
+                <td>{{ cell(row[0]) }}</td>
+                <td>
+                  <a href="/detail/deal/{{ row[0] }}">{{ cell(row[1]) }}</a>
+                  <a class="rowlink" href="/detail/deal/{{ row[0] }}">查看详情</a>
+                </td>
+                <td>{{ cell(row[2]) }}</td>
+                <td>{{ cell(row[3]) }}</td>
+                <td>{{ cell(row[4]) }}</td>
+                <td>
+                  <div class="cell-actions">
+                    <a class="btn btn--danger btn--sm" href="/detail/deal/{{ row[0] }}?delete=1">删除</a>
+                  </div>
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="6" class="muted">暂无数据</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+  </div>
+</section>
+
+{% endblock %}

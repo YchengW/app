@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>出让库软件</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      --bg:#f6f7f9;
+      --card:#fff;
+      --text:#1f2937;
+      --muted:#6b7280;
+      --border:#e5e7eb;
+      --primary:#2563eb;
+      --primary-ghost:#eff6ff;
+      --success:#059669;
+      --shadow:0 6px 18px rgba(0,0,0,.06);
+      --radius:14px;
+      --radius-sm:10px;
+      --gap:16px;
+      --gap-lg:22px;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
+
+    a{color:inherit;text-decoration:none}
+    .nav{
+      background:#111827;color:#fff;position:sticky;top:0;z-index:10;
+      box-shadow:0 2px 8px rgba(0,0,0,.2)
+    }
+    .nav__inner{max-width:1120px;margin:0 auto;padding:14px 18px;display:flex;align-items:center;gap:10px}
+    .brand{font-weight:700;letter-spacing:.3px}
+    .wrap{max-width:1120px;margin:28px auto;padding:0 18px}
+    .grid{display:grid;grid-template-columns:1fr;gap:var(--gap-lg)}
+    @media (min-width: 920px){ .grid{grid-template-columns: 1fr 1.7fr} }
+
+    .card{
+      background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+      box-shadow:var(--shadow);overflow:hidden
+    }
+    .card__hd{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+    .card__title{font-weight:600}
+    .card__sub{color:var(--muted);font-size:.9rem}
+    .card__bd{padding:16px}
+
+    .stack{display:grid;gap:var(--gap)}
+    .label{font-size:.92rem;margin-bottom:6px;display:block}
+    .input, .btn{
+      width:100%;padding:10px 12px;border-radius:12px;border:1px solid var(--border);background:#fff
+    }
+    .input:focus{outline:2px solid var(--primary-ghost);border-color:#bfdbfe}
+    .btn{
+      cursor:pointer;border:none;color:#fff;background:var(--primary);font-weight:600;transition:transform .02s ease, box-shadow .2s ease
+    }
+    .btn:hover{box-shadow:0 6px 16px rgba(37,99,235,.25)}
+    .btn:active{transform:translateY(1px)}
+    .btn--ghost{
+      background:transparent;color:var(--primary);border:1px solid #bfdbfe
+    }
+    .btn--success{
+      background:var(--success)
+    }
+    .btn--sm{padding:7px 10px;font-size:.92rem;border-radius:10px;width:auto}
+
+    .table-wrap{overflow:auto}
+    table{width:100%;border-collapse:collapse;font-size:.95rem}
+    thead th{
+      text-align:left;padding:10px 12px;background:#fbfbfd;border-bottom:1px solid var(--border);white-space:nowrap
+    }
+    tbody td{
+      padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle
+    }
+    tbody tr:hover{background:#fcfcff}
+    .cell-actions{display:flex;gap:10px}
+
+    .muted{color:var(--muted);text-align:center;padding:16px}
+    .badge{font-size:.78rem;color:var(--muted)}
+    .tabs { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); }
+    .tabs__nav { display:flex; gap:0; border-bottom:1px solid var(--border); overflow:auto; }
+    .tabs__btn {
+      padding:12px 16px; cursor:pointer; user-select:none; white-space:nowrap;
+      border-right:1px solid var(--border); color:var(--muted);
+    }
+    .tabs__btn:last-child { border-right:none; }
+    .tabs__btn--active { color:var(--text); background:#fff; font-weight:600; }
+    .tabs__panels { padding:16px; }
+    /* 基于 radio 的纯 CSS 显隐 */
+    .tab__panel { display:none; }
+    #tab-reserve:checked ~ .tabs .btn-reserve,
+    #tab-offering:checked ~ .tabs .btn-offering,
+    #tab-deal:checked    ~ .tabs .btn-deal { background:#fff; color:var(--text); font-weight:600; }
+
+    #tab-reserve:checked ~ .tabs .panel-reserve { display:block; }
+    #tab-offering:checked ~ .tabs .panel-offering { display:block; }
+    #tab-deal:checked ~ .tabs .panel-deal { display:block; }
+    /* 隐藏单选本体 */
+    .tab-input { position:absolute; left:-9999px; top:-9999px; }
+
+    /* 整行可点击 */
+    .table-row-click { position: relative; }
+    .table-row-click:hover { background:#fcfcff; cursor: pointer; }
+
+    .rowlink {
+      position: absolute; inset: 0; z-index: 1;
+      /* 让可点击区域覆盖整行，但视觉不可见 */
+      color: inherit; text-decoration: none; 
+      /* 提供可访问的名称（屏幕阅读器会读到“查看详情”），但视觉上隐藏文字 */
+      text-indent: -9999px; overflow: hidden;
+    }
+
+    /* 确保操作按钮能点击，在覆盖层之上 */
+    .cell-actions { position: relative; z-index: 2; }
+
+    .btn--danger{ background:#dc2626; color:#fff; border:none }
+    .btn--danger:hover{ box-shadow:0 6px 16px rgba(220,38,38,.25) }
+
+    /* ------- Glass Cards (Home) ------- */
+    .container{
+      position:relative;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      gap:0;              /* 用 margin 技巧制造重叠，hover 时展开 */
+      padding:40px 0;
+    }
+    .container .glass{
+      position:relative;
+      width:180px;height:200px;
+      background:linear-gradient(#ffffff22, transparent);
+      border:1px solid rgba(0,0,0,.08);
+      box-shadow:0 25px 25px rgba(0,0,0,.12);
+      display:flex;justify-content:center;align-items:center;
+      transition:.5s;border-radius:10px;
+      margin:0 -45px;
+      backdrop-filter:blur(10px);
+      transform:rotate(calc(var(--r) * 1deg));
+      text-decoration:none; color:#111;  /* 让 <a> 卡片可点且文字颜色合适 */
+    }
+    .container:hover .glass{
+      transform:rotate(0deg);
+      margin:0 10px;
+    }
+    .container .glass::before{
+      content:attr(data-text);
+      position:absolute;bottom:0;left:0;right:0;height:40px;
+      background:rgba(0,0,0,0.04);
+      display:flex;justify-content:center;align-items:center;
+      color:#111;font-weight:600;
+      border-radius:0 0 10px 10px;
+    }
+    .container .glass svg{
+      font-size:2.5em; fill:#111;
+    }
+    @media (prefers-color-scheme: dark){
+      .container .glass{ border-color:rgba(255,255,255,.12); color:#fff }
+      .container .glass::before{ background:rgba(255,255,255,.06); color:#fff }
+      .container .glass svg{ fill:#fff }
+    }
+
+    /* 整行可点：覆盖层避开最后一列“操作”160px区域 */
+    .table-has-actions .rowlink { right: 160px; }    /* 和表头<th style="width:160px">一致 */
+    .table-has-actions .cell-actions { position: relative; z-index: 2; } /* 确保按钮在覆盖层之上 */
+    
+    /* 详情页：双列 KV 密集网格 */
+    .kv-grid{
+      display:grid;
+      grid-template-columns: 1fr 2fr 1fr 2fr;  /* (名,值) x2 */
+      gap:8px 12px;
+      align-items:center;
+    }
+    .kv-key{
+      font-weight:600; color:#374151; border-bottom:1px solid var(--border);
+      padding:6px 8px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .kv-val{
+      border-bottom:1px solid var(--border); padding:6px 8px; word-break:break-all;
+    }
+    @media (max-width: 900px){
+      .kv-grid{ grid-template-columns: 1fr 2fr; } /* 小屏退化为单列名/值 */
+    }
+
+  </style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav__inner">
+    <div class="brand">出让库软件（雏形）</div>
+    <div style="margin-left:auto; display:flex; gap:12px;">
+      <a href="/" class="badge">首页</a>
+      <a href="/add" class="badge">新增数据</a>
+    </div>
+  </div>
+</header>
+  <main class="wrap">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>
