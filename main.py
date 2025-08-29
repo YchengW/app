@@ -4,7 +4,7 @@
     Request：用于把请求对象传给模板（模板里常需要 request）。
     Form：用于从 HTML 表单里取字段（见下面的 reserve_add 路由）。
 '''
-from fastapi import FastAPI, Request, Form, Query
+from fastapi import FastAPI, Request, Form, Query, UploadFile, File
 '''
     HTMLResponse：声明这个路由返回的是 HTML（不是 JSON）。
     RedirectResponse：操作成功后重定向（比如提交表单后回到首页）。
@@ -232,3 +232,93 @@ def move_offering_to_deal(oid: int):
     except Exception as e:
         print("move_offering_to_deal error:", e)
     return RedirectResponse("/view/offering", status_code=status.HTTP_303_SEE_OTHER)
+
+# 导入页
+@app.get("/import", response_class=HTMLResponse)
+def import_page(request: Request, ok: int | None = Query(default=None)):
+    return templates.TemplateResponse("import.html", {"request": request, "ok": ok})
+
+# 处理上传
+@app.post("/import", response_class=HTMLResponse)
+async def import_submit(
+    request: Request,
+    table: str = Form(...),
+    header_type: str = Form(...),   # "cn" 中文表头 / "en" 英文字段名
+    file: UploadFile = File(...)
+):
+    # 读取 xlsx
+    from openpyxl import load_workbook
+    import io
+
+    content = await file.read()
+    wb = load_workbook(filename=io.BytesIO(content), data_only=True)
+    ws = wb.active  # 读第一张表
+
+    # 取表头
+    rows = list(ws.iter_rows(values_only=True))
+    if not rows:
+        return templates.TemplateResponse(
+            "import.html",
+            {"request": request, "errors": ["Excel 为空"], "ok": 0}
+        )
+
+    header = [str(c).strip() if c is not None else "" for c in rows[0]]
+
+    # 中英表头映射
+    FIELD_LABELS = templates.env.globals["FIELD_LABELS"]  # 你已在 main.py 注入
+    CN2EN = {v: k for k, v in FIELD_LABELS.items()}       # "名称"->"name" 等
+
+    def norm_col(h: str) -> str:
+        if header_type == "en":
+            return h
+        # 中文表头
+        return CN2EN.get(h, h)
+
+    # 计算列名 -> 列索引
+    col_names = [norm_col(h) for h in header]
+
+    # 校验至少包含 id、name
+    if "id" not in col_names or "name" not in col_names:
+        return templates.TemplateResponse(
+            "import.html",
+            {
+                "request": request,
+                "errors": ["表头必须至少包含：id、name（可用中文“ID”、“名称”）"],
+                "ok": 0
+            }
+        )
+
+    # 组装行数据
+    data_rows = []
+    for r in rows[1:]:
+        if r is None:
+            continue
+        row_dict = {}
+        for idx, raw in enumerate(r):
+            if idx >= len(col_names):
+                continue
+            col = col_names[idx]
+            if col in db.ALL_COLUMNS:
+                val = raw
+                # openpyxl 读到的日期/数字可能是 Python 类型，允许直接写入
+                # 统一把单元格里的空白转成空串
+                if isinstance(val, str):
+                    val = val.strip()
+                row_dict[col] = val
+        # 跳过全空行
+        if all((v is None or (isinstance(v, str) and v == "")) for v in row_dict.values()):
+            continue
+        data_rows.append(row_dict)
+
+    ok_count, errors = db.bulk_add_full_records(table, data_rows)
+
+    return templates.TemplateResponse(
+        "import.html",
+        {
+            "request": request,
+            "ok": ok_count,
+            "errors": [f"第 {i} 行：{msg}" for i, msg in errors],
+            "table": table,
+            "filename": file.filename,
+        }
+    )

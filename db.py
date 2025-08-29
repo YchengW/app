@@ -1,5 +1,5 @@
 import sqlite3
-from typing import Dict, Optional, List, Tuple
+from typing import Dict, Optional, List, Tuple, Iterable
 
 DB_FILE = "tri.db"
 
@@ -7,6 +7,45 @@ def get_conn(db_file: str = DB_FILE) -> sqlite3.Connection:
     """获取一个数据库连接。如果文件不存在，SQLite会自动创建"""
     conn = sqlite3.connect(db_file)
     return conn
+
+def bulk_add_full_records(table: str, rows: Iterable[dict]) -> Tuple[int, list]:
+    """批量插入。rows 为若干 dict（键 = ALL_COLUMNS 的子集；至少含 id、name）。
+    返回 (成功条数, 错误列表[ (row_index, message) ])。
+    - 逐条执行，单条失败不会影响其它。
+    - 空字符串会当作 None。
+    """
+    if table not in {"reserve", "offering", "deal"}:
+        raise ValueError("table 必须是 reserve/offering/deal")
+
+    success = 0
+    errors = []
+    conn = get_conn()
+    try:
+        cur = conn.cursor()
+        placeholders = ",".join(["?"] * len(ALL_COLUMNS))
+        cols_sql = ", ".join(ALL_COLUMNS)
+        sql = f"INSERT INTO {table} ({cols_sql}) VALUES ({placeholders})"
+
+        for idx, data in enumerate(rows, start=1):
+            try:
+                # 组装一行值，缺失的列补 None；空串 -> None
+                values = []
+                for col in ALL_COLUMNS:
+                    v = data.get(col, None)
+                    if isinstance(v, str) and v.strip() == "":
+                        v = None
+                    values.append(v)
+                # 基本校验
+                if values[0] in (None, "") or values[1] in (None, ""):  # id, name
+                    raise ValueError("缺少必填字段 id 或 name")
+                cur.execute(sql, values)
+                success += 1
+            except Exception as e:
+                errors.append((idx, str(e)))
+        conn.commit()
+        return success, errors
+    finally:
+        conn.close()
 
 # =====================基础：连接 & 建表======================== #
 def init_db(db_file: str = DB_FILE) -> None:

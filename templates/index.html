@@ -5,6 +5,19 @@
 {% macro cell(v) -%}
   {{ v if v not in [None, ""] else "\\" }}
 {%- endmacro %}
+
+{# 统一渲染日期：空值显示 \ ，否则取 YYYY-MM-DD #}
+{% macro date_cell(v) -%}
+  {%- if v in [None, ""] -%}\{%- else -%}
+    {%- if v.__class__.__name__ in ["date","datetime"] -%}
+      {{ v.strftime("%Y-%m-%d") }}
+    {%- else -%}
+      {{ (v|string)[:10] }}
+    {%- endif -%}
+  {%- endif -%}
+{%- endmacro %}
+
+
 {% if deleted %}
   <div style="background:#ecfdf5;border:1px solid #bbf7d0;color:#065f46;padding:10px 12px;border-radius:10px;margin-bottom:14px;">
     ✅ 已删除
@@ -57,7 +70,7 @@
                 </td>
                 <td>{{ cell(row[2]) }}</td>  {# mineral_type #}
                 <td>{{ cell(row[3]) }}</td>  {# region #}
-                <td>{{ cell(row[4]) }}</td>  {# announcement_date #}
+                <td>{{ date_cell(row[4]) }}</td>  {# announcement_date #}
                 <td>
                   <div class="cell-actions">
                     <form method="post" action="/move/reserve/{{ row[0] }}">
@@ -105,7 +118,7 @@
                 </td>
                 <td>{{ cell(row[2]) }}</td>
                 <td>{{ cell(row[3]) }}</td>
-                <td>{{ cell(row[4]) }}</td>
+                <td>{{ date_cell(row[4]) }}</td>
                 <td>
                   <div class="cell-actions">
                     <form method="post" action="/move/offering/{{ row[0] }}">
@@ -153,7 +166,7 @@
                 </td>
                 <td>{{ cell(row[2]) }}</td>
                 <td>{{ cell(row[3]) }}</td>
-                <td>{{ cell(row[4]) }}</td>
+                <td>{{ date_cell(row[4]) }}</td>
                 <td>
                   <div class="cell-actions">
                     <a class="btn btn--danger btn--sm" href="/detail/deal/{{ row[0] }}?delete=1">删除</a>

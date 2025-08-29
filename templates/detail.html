@@ -1,6 +1,17 @@
 {% extends "base.html" %}
 {% block content %}
 
+{% macro date_view(v) -%}
+  {%- if v in [None, ""] -%}\{%- else -%}
+    {%- if v.__class__.__name__ in ["date","datetime"] -%}
+      {{ v.strftime("%Y-%m-%d") }}
+    {%- else -%}
+      {{ (v|string)[:10] }}
+    {%- endif -%}
+  {%- endif -%}
+{%- endmacro %}
+
+
 <section class="card" style="max-width:1200px; margin:0 auto;">
   <div class="card__hd" style="flex-wrap:wrap; gap:8px;">
     <div class="card__title">{{ table_label }} · 详情（ID：{{ id_ }}）</div>
@@ -41,12 +52,20 @@
 
     {% if not edit %}
       <!-- 只读：双列 KV 密集网格 -->
-      <div class="kv-grid">
-        {% for label, value in items %}
-          <div class="kv-key">{{ label }}</div>
-          <div class="kv-val">{{ value if value not in [None, ""] else "\\" }}</div>
-        {% endfor %}
-      </div>
+    {% set date_labels = ["发布出让公告时间","成交日期","合同签订日期","付款截止日期","实际付款日期"] %}
+    <div class="kv-grid">
+      {% for label, value in items %}
+        <div class="kv-key">{{ label }}</div>
+        <div class="kv-val">
+          {% if label in date_labels %}
+            {{ date_view(value) }}
+          {% else %}
+            {{ value if value not in [None, ""] else "\\" }}
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+
 
     {% else %}
       <!-- 编辑：同样的网格，但右列是输入控件 -->
